@@ -28,4 +28,20 @@ git config --global pull.rebase          false
 git config --global push.autoSetupRemote true   # `git push` works on new branches
 git config --global fetch.prune          true   # auto-clean deleted remote branches
 
+# 1Password CLI (op) — lets AI agents in this Codespace resolve op:// secret
+# references via the OP_SERVICE_ACCOUNT_TOKEN Codespaces user secret.
+# Installed in every Codespace (idempotent). Resolve a secret with:
+#   op read "op://AI-Agents/<item>/<field>"
+# or inject into a process:  op run -- <command>
+echo "==> dotfiles: installing 1Password CLI (op)"
+if ! command -v op >/dev/null 2>&1; then
+  ARCH="$(dpkg --print-architecture)"   # amd64 / arm64
+  OP_VERSION="2.34.0"
+  curl -sSf "https://cache.agilebits.com/dist/1P/op2/pkg/v${OP_VERSION}/op_linux_${ARCH}_v${OP_VERSION}.zip" -o /tmp/op.zip
+  unzip -o /tmp/op.zip op -d /tmp/op-bin
+  sudo install -m 0755 /tmp/op-bin/op /usr/local/bin/op
+  rm -rf /tmp/op.zip /tmp/op-bin
+fi
+op --version
+
 echo "==> dotfiles: done"
