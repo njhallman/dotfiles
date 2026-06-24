@@ -1,0 +1,22 @@
+{
+    "name": "PROJECT_NAME",
+    "image": "mcr.microsoft.com/devcontainers/universal:linux",
+    "hostRequirements": {
+        "cpus": 2,
+        "storage": "32gb"
+    },
+    "postCreateCommand": "bash .devcontainer/setup.sh",
+    "remoteUser": "codespace",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "anthropic.claude-code",
+                "ms-python.python",
+                "ms-toolsai.jupyter"
+            ],
+            "settings": {
+                "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python"
+            }
+        }
+    }
+}
