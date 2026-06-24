@@ -5,14 +5,15 @@
         "cpus": 2,
         "storage": "32gb"
     },
-    "postCreateCommand": "bash .devcontainer/setup.sh",
+    "postCreateCommand": "curl -fsSL https://raw.githubusercontent.com/njhallman/dotfiles/main/project-setup.sh | bash",
     "remoteUser": "codespace",
     "customizations": {
         "vscode": {
             "extensions": [
                 "anthropic.claude-code",
                 "ms-python.python",
-                "ms-toolsai.jupyter"
+                "ms-toolsai.jupyter",
+                "James-Yu.latex-workshop"
             ],
             "settings": {
                 "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python"

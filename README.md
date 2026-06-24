@@ -32,14 +32,16 @@ The exact mechanism, end to end:
    (override with the `STATA_INSTALLER_URL` env/secret).
 3. **Stata license** comes from `STATA_*` env vars (Codespaces secrets) if set,
    otherwise from the 1Password item `op://AI-Agents/stata-license`.
-4. **Install steps** (`install.sh` for you; `template/.devcontainer/setup.sh`
-   for projects): add libncurses5/libtinfo5 shims -> extract the tar to
-   `/usr/local/stata` -> run `./install` (auto-answered) -> run `./stinit` with
-   the license to write `stata.lic`. Idempotent — skips if `stata-se` exists.
-5. **Personal vs. shared.** `install.sh` runs via your per-user *dotfiles* on
-   every Codespace. For shared projects, `scaffold-devcontainer.sh` drops a
-   self-contained `.devcontainer/` into the repo so coauthors get the same
-   environment using *their own* Codespaces secrets.
+4. **Two entry points.** Your personal `install.sh` runs via *dotfiles* on every
+   Codespace (git config, `op`, Claude extension, Stata). Projects use a
+   `.devcontainer/devcontainer.json` whose `postCreateCommand` fetches and runs
+   `project-setup.sh` — the one universal setup (LaTeX, Python, `op`, Stata +
+   the VS Code extensions). Editing `project-setup.sh` updates every project on
+   its next rebuild.
+5. **Stata install steps** (shared by both): add libncurses5/libtinfo5 shims ->
+   extract the tar to `/usr/local/stata` -> run `./install` (auto-answered) ->
+   run `./stinit` with the license to write `stata.lic`. Idempotent — skips if
+   `stata-se` exists.
 
 ## Stata
 
@@ -95,11 +97,13 @@ public access:
    → **Public access** → **R2.dev subdomain** → *Allow Access*.
 2. Copy the public bucket URL (`https://pub-<hash>.r2.dev`). The installer URL
    is that + `/StataNow18Linux64.tar`.
-3. Set it as the `STATA_INSTALLER_URL` default in `install.sh` (replace the
-   `pub-REPLACE_ME` placeholder), or export `STATA_INSTALLER_URL` as a secret.
+3. Set it as the `STATA_INSTALLER_URL` default in `install.sh` and
+   `project-setup.sh`, or export `STATA_INSTALLER_URL` as a secret.
 
-Until a real URL is set, the placeholder is ignored and `install.sh` falls back
-to the private R2 bucket via credentials (owner only).
+The current public URL
+(`https://pub-7fea5c052fbe4dfa88bf8892e457c684.r2.dev/StataNow18Linux64.tar`) is
+already baked into both scripts; `install.sh` falls back to the private R2 bucket
+via credentials only if it is ever unset (owner only).
 
 ### Notes
 
@@ -109,45 +113,37 @@ to the private R2 bucket via credentials (owner only).
 - Stata packages (`estout`, `reghdfe`, …) are project-level `ssc install`s and
   are intentionally left to the project repo, not installed here.
 
-## Reusing this for new projects (scaffold a devcontainer)
+## One devcontainer for all your projects
 
-Dotfiles are **per-user**: once you opt in, *you* get this setup on every
-Codespace automatically. To give a **project** the same environment — shared,
-reproducible, and available to **coauthors who don't have your dotfiles** — drop
-a devcontainer into it with the scaffold:
+Every project gets the same environment from **one file** — a
+`.devcontainer/devcontainer.json` whose `postCreateCommand` fetches and runs
+[`project-setup.sh`](project-setup.sh) from this repo. That script is the single
+source of truth: **LaTeX** (TeX Live + `latexmk` + `biber`), a **Python** venv,
+the **1Password CLI**, and **Stata**, plus the Claude Code, Python, Jupyter, and
+LaTeX Workshop VS Code extensions. Edit `project-setup.sh` once and every project
+picks it up on its next Codespace rebuild.
+
+### Easiest: paste it on the GitHub website (no terminal)
+
+1. On the project repo: **Code ▸ Codespaces ▸ ⋯ ▸ Configure dev container**
+   (or **Add file ▸ Create new file** named `.devcontainer/devcontainer.json`).
+2. Select all, delete the generated contents, and paste
+   [`template/.devcontainer/devcontainer.json`](template/.devcontainer/devcontainer.json)
+   (change `"name"` to your project if you like).
+3. Click **Commit changes**.
+
+### Or scaffold from a terminal
 
 ```sh
-# from a clone of this repo:
-bash scaffold-devcontainer.sh /path/to/project
-
-# or anywhere, no clone needed:
-curl -fsSL https://raw.githubusercontent.com/njhallman/dotfiles/main/scaffold-devcontainer.sh \
-  | bash -s -- /path/to/project
+curl -fsSL https://raw.githubusercontent.com/njhallman/dotfiles/main/scaffold-devcontainer.sh | bash -s -- /path/to/project
 ```
 
-This writes a **self-contained** `.devcontainer/` (`devcontainer.json` +
-`setup.sh`) into the project — copied from [`template/`](template/). It contains
-**no credentials**; everything secret comes from each user's Codespaces secrets.
-It installs:
-
-- the Claude Code, Python, and Jupyter VS Code extensions,
-- a Python `.venv` (+ `requirements.txt` if present),
-- the 1Password CLI (`op`) — used only if the user sets their own
-  `OP_SERVICE_ACCOUNT_TOKEN` secret,
-- **Stata**, licensed from each user's own `STATA_*` Codespaces secrets and
-  fetched from the public installer URL.
-
-Then: commit `.devcontainer/`, have each collaborator set their Codespaces
-secrets (`STATA_SERIAL`, `STATA_CODE`, `STATA_AUTHORIZATION`, `STATA_NAME`,
-`STATA_AFFILIATION`; optionally `OP_SERVICE_ACCOUNT_TOKEN`), and create a
-Codespace — `setup.sh` runs on create. Works for new projects and for adding a
-Codespace setup to existing ones.
-
-> The Stata installer URL is baked into two places — `install.sh` (your personal
-> dotfiles) and `template/.devcontainer/setup.sh` (the project template) — both
-> pointing at the public R2 bucket. Override per-Codespace with the
-> `STATA_INSTALLER_URL` secret (see
-> [Hosting the installer](#hosting-the-installer-public-r2-bucket)).
+Then, either way: set your Codespaces secrets (`STATA_SERIAL`, `STATA_CODE`,
+`STATA_AUTHORIZATION`, `STATA_NAME`, `STATA_AFFILIATION`; optionally
+`OP_SERVICE_ACCOUNT_TOKEN`) at
+[github.com/settings/codespaces](https://github.com/settings/codespaces), then
+create a Codespace on the repo — `project-setup.sh` runs automatically. Works for
+new and existing projects, and for coauthors using their own secrets.
 
 ## Extending
 
