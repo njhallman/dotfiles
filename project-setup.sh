@@ -44,14 +44,26 @@ op --version || true
 echo "==> setup: Stata"
 STATA_DIR=/usr/local/stata
 STATA_INSTALLER_URL="${STATA_INSTALLER_URL:-https://pub-7fea5c052fbe4dfa88bf8892e457c684.r2.dev/StataNow18Linux64.tar}"
+
+# License: env vars take precedence (coauthors set their own STATA_* Codespaces
+# secrets); otherwise read it from 1Password (op://AI-Agents/stata-license) via the
+# OP_SERVICE_ACCOUNT_TOKEN secret — so you only scope that ONE secret per repo.
+ST_SERIAL="${STATA_SERIAL:-}"; ST_CODE="${STATA_CODE:-}"; ST_AUTH="${STATA_AUTHORIZATION:-}"
+ST_NAME="${STATA_NAME:-}"; ST_AFFIL="${STATA_AFFILIATION:-}"
+if [ -z "$ST_SERIAL" ] && command -v op >/dev/null 2>&1 && [ -n "${OP_SERVICE_ACCOUNT_TOKEN:-}" ] && ST_SERIAL=$(op read "op://AI-Agents/stata-license/serial" 2>/dev/null); then
+  ST_CODE=$(op read "op://AI-Agents/stata-license/code")
+  ST_AUTH=$(op read "op://AI-Agents/stata-license/authorization")
+  ST_NAME=$(op read "op://AI-Agents/stata-license/name")
+  ST_AFFIL=$(op read "op://AI-Agents/stata-license/affiliation")
+fi
 if [ -n "${DOTFILES_SKIP_STATA:-}" ]; then
   echo "    (skipped: DOTFILES_SKIP_STATA set)"
 elif [ -x "$STATA_DIR/stata-se" ]; then
   echo "    (skipped: already installed at $STATA_DIR)"
 elif [ "$(dpkg --print-architecture)" != "amd64" ]; then
   echo "    (skipped: StataNow18Linux64 is x86_64-only; host is $(dpkg --print-architecture))"
-elif [ -z "${STATA_SERIAL:-}" ]; then
-  echo "    (skipped: no license — set STATA_SERIAL/STATA_CODE/STATA_AUTHORIZATION/STATA_NAME/STATA_AFFILIATION as Codespaces secrets)"
+elif [ -z "$ST_SERIAL" ]; then
+  echo "    (skipped: no license — set STATA_* Codespaces secrets, or scope OP_SERVICE_ACCOUNT_TOKEN to this repo so the license resolves from 1Password)"
 else
   TARDIR="$(mktemp -d)"
   echo "    downloading StataNow18Linux64.tar (~730MB)..."
@@ -67,8 +79,8 @@ else
   ( cd "$STATA_DIR" && printf 'y\ny\ny\n' | sudo bash ./install ) >/dev/null 2>&1 || true
   sudo chmod 755 "$STATA_DIR/stinit"
   ( cd "$STATA_DIR" && printf 'y\ny\n%s\n%s\n%s\nY\nY\n%s\n%s\nY\n' \
-      "$STATA_SERIAL" "${STATA_CODE:-}" "${STATA_AUTHORIZATION:-}" \
-      "${STATA_NAME:-Stata User}" "${STATA_AFFILIATION:-}" | sudo ./stinit ) >/dev/null 2>&1 || true
+      "$ST_SERIAL" "$ST_CODE" "$ST_AUTH" \
+      "${ST_NAME:-Stata User}" "$ST_AFFIL" | sudo ./stinit ) >/dev/null 2>&1 || true
   rm -rf "$TARDIR"
   [ -x "$STATA_DIR/stata-se" ] && echo "    Stata installed at $STATA_DIR" \
     || echo "    (warning: install ran but stata-se missing — check license)"

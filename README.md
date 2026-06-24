@@ -138,12 +138,22 @@ picks it up on its next Codespace rebuild.
 curl -fsSL https://raw.githubusercontent.com/njhallman/dotfiles/main/scaffold-devcontainer.sh | bash -s -- /path/to/project
 ```
 
-Then, either way: set your Codespaces secrets (`STATA_SERIAL`, `STATA_CODE`,
-`STATA_AUTHORIZATION`, `STATA_NAME`, `STATA_AFFILIATION`; optionally
-`OP_SERVICE_ACCOUNT_TOKEN`) at
-[github.com/settings/codespaces](https://github.com/settings/codespaces), then
-create a Codespace on the repo — `project-setup.sh` runs automatically. Works for
-new and existing projects, and for coauthors using their own secrets.
+Then set your Codespaces secrets at
+[github.com/settings/codespaces](https://github.com/settings/codespaces) and
+scope them to the repo. Personal Codespaces secrets have **no "all repositories"
+option** — you pick repos individually in the "Select repositories" dropdown — so
+the setup minimises how many you need:
+
+- **You (the owner):** scope just **`OP_SERVICE_ACCOUNT_TOKEN`** to the repo.
+  `project-setup.sh` reads your Stata license from 1Password
+  (`op://AI-Agents/stata-license`), and `op://` data secrets resolve too — one
+  secret per repo.
+- **Coauthors (no 1Password):** set their own `STATA_SERIAL`, `STATA_CODE`,
+  `STATA_AUTHORIZATION`, `STATA_NAME`, `STATA_AFFILIATION` secrets; those take
+  precedence over the 1Password fallback.
+
+Create a Codespace on the repo and `project-setup.sh` runs automatically — for
+new or existing projects.
 
 ## Extending
 
